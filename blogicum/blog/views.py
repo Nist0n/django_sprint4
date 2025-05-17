@@ -11,7 +11,6 @@ from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
 from django.http import Http404
 from django.views.generic import UpdateView
-from django.contrib.auth.forms import UserChangeForm
 from .forms import ProfileEditForm
 
 
@@ -38,8 +37,10 @@ def post_detail(request, id):
         pk=id
     )
 
-    if (not post.is_published or not post.category.is_published
-        or post.pub_date > timezone.now()) and request.user != post.author:
+    if (not post.is_published
+            or not post.category.is_published
+            or post.pub_date > timezone.now()) \
+            and request.user != post.author:
         raise Http404
 
     if request.method == 'POST':
