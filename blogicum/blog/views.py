@@ -10,6 +10,7 @@ from django.contrib.auth import get_user_model
 from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
 from django.http import Http404
+from django.views.generic import UpdateView
 
 
 User = get_user_model()
@@ -78,20 +79,25 @@ def profile_view(request, username):
     profile = get_object_or_404(User, username=username)
     post_list = Post.objects.filter(author=profile).order_by('-pub_date')
 
-    if request.user != profile:
-        post_list = post_list.filter(
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=timezone.now()
-        )
+    if request.user == profile:
+            post_list = Post.objects.filter(author=profile)
+        else:
+            post_list = Post.objects.filter(
+                author=profile,
+                is_published=True,
+                category__is_published=True,
+                pub_date__lte=timezone.now()
+            )
 
-    paginator = Paginator(post_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    return render(request, 'blog/profile.html', {
-        'profile': profile,
-        'page_obj': page_obj,
-    })
+        post_list = post_list.order_by('-pub_date')
+        paginator = Paginator(post_list, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        return render(request, 'blog/profile.html', {
+            'profile': profile,
+            'page_obj': page_obj,
+        })
 
 
 class RegistrationView(CreateView):
@@ -150,31 +156,45 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         )
 
 
+class ProfileUpdateView(LoginRequiredMixin, UpdateView):
+    model = User
+    fields = ['first_name', 'last_name', 'email']
+    template_name = 'blog/profile_edit.html'
+
+    def get_object(self):
+        return self.request.user
+
+    def get_success_url(self):
+        return reverse('blog:profile',
+                       kwargs={'username': self.request.user.username})
+
+
 @login_required
 def add_comment(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
-    form = CommentForm(request.POST or None)
-    if form.is_valid():
-        comment = form.save(commit=False)
-        comment.post = post
-        comment.author = request.user
-        comment.save()
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            return redirect('blog:post_detail', id=post_id)
     return redirect('blog:post_detail', id=post_id)
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
     model = Comment
     form_class = CommentForm
-    template_name = 'blog/comment.html'
+    template_name = 'blog/comment_edit.html'
     pk_url_kwarg = 'comment_id'
 
     def test_func(self):
         return self.get_object().author == self.request.user
 
     def dispatch(self, request, *args, **kwargs):
-        comment = self.get_object()
-        if comment.author != request.user:
-            return redirect('blog:post_detail', id=comment.post.pk)
+        if not request.user == self.get_object().author:
+            raise Http404
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
