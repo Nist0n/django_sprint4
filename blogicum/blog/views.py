@@ -87,11 +87,13 @@ def profile_view(request, username):
             is_published=True,
             category__is_published=True,
             pub_date__lte=timezone.now()
+        )
 
     post_list = post_list.order_by('-pub_date')
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_numb
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'blog/profile.html', {
         'profile': profile,
         'page_obj': page_obj,
