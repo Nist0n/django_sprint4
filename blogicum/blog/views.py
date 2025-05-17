@@ -4,12 +4,11 @@ from django.views.generic import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
-from django.contrib.auth.mixins import UserPassesTestMixin
 
 
 User = get_user_model()
