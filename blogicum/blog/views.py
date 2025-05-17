@@ -10,18 +10,23 @@ from django.contrib.auth import get_user_model
 from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
 
+
 User = get_user_model()
+
 
 def index(request):
     post_list = Post.objects.filter(
         is_published=True,
         category__is_published=True,
         pub_date__lte=timezone.now()
-    ).select_related('category', 'location', 'author').prefetch_related('comments')
+    ).select_related('category', 'location', 'author')
+    .prefetch_related('comments')
+
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'blog/index.html', {'page_obj': page_obj})
+
 
 def post_detail(request, id):
     post = get_object_or_404(
@@ -29,11 +34,11 @@ def post_detail(request, id):
                    .prefetch_related('comments__author'),
         pk=id
     )
-    if request.user != post.author and (
-        not post.is_published
-        or not post.category.is_published
-        or post.pub_date > timezone.now()
-    ):
+
+    if (request.user != post.author and
+        (not post.is_published or
+         not post.category.is_published or
+         post.pub_date > timezone.now())):
         return redirect('blog:index')
 
     form = CommentForm()
@@ -41,6 +46,7 @@ def post_detail(request, id):
         'post': post,
         'form': form,
     })
+
 
 def category_posts(request, category_slug):
     category = get_object_or_404(
@@ -61,6 +67,7 @@ def category_posts(request, category_slug):
         'page_obj': page_obj
     })
 
+
 def profile_view(request, username):
     profile = get_object_or_404(User, username=username)
     post_list = Post.objects.filter(author=profile)
@@ -79,10 +86,12 @@ def profile_view(request, username):
         'page_obj': page_obj,
     })
 
+
 class RegistrationView(CreateView):
     form_class = UserCreationForm
     success_url = reverse_lazy('blog:index')
     template_name = 'registration/registration.html'
+
 
 class PostCreateView(LoginRequiredMixin, CreateView):
     model = Post
@@ -96,34 +105,41 @@ class PostCreateView(LoginRequiredMixin, CreateView):
     def get_success_url(self):
         return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
 
+
 class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
 
+
     def dispatch(self, request, *args, **kwargs):
         obj = self.get_object()
         if obj.author != self.request.user:
             return redirect('blog:post_detail', id=obj.pk)
         return super().dispatch(request, *args, **kwargs)
 
+
     def get_success_url(self):
         return reverse_lazy('blog:post_detail', kwargs={'id': self.object.pk})
+
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
 
+
     def dispatch(self, request, *args, **kwargs):
         obj = self.get_object()
         if obj.author != self.request.user:
             return redirect('blog:post_detail', id=obj.pk)
         return super().dispatch(request, *args, **kwargs)
 
+
     def get_success_url(self):
         return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
+
 
 @login_required
 def add_comment(request, post_id):
@@ -135,6 +151,7 @@ def add_comment(request, post_id):
         comment.author = request.user
         comment.save()
     return redirect('blog:post_detail', id=post_id)
+
 
 @login_required
 def edit_comment(request, post_id, comment_id):
@@ -150,6 +167,7 @@ def edit_comment(request, post_id, comment_id):
         'form': form,
         'comment': comment,
     })
+
 
 @login_required
 def delete_comment(request, post_id, comment_id):
