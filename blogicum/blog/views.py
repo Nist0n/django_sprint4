@@ -16,10 +16,12 @@ User = get_user_model()
 
 def index(request):
     post_list = Post.objects.filter(
-        is_published=True,
-        category__is_published=True,
-        pub_date__lte=timezone.now()
-    ).select_related('category', 'location', 'author').prefetch_related('comments')
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=timezone.now()
+        ).select_related(
+            'category', 'location', 'author'
+        ).prefetch_related('comments')
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -29,10 +31,10 @@ def index(request):
 
 def post_detail(request, id):
     post = get_object_or_404(
-        Post.objects.select_related('category', 'location', 'author')
-                   .prefetch_related('comments__author'),
-        pk=id
-    )
+            Post.objects.select_related('category', 'location', 'author')
+                       .prefetch_related('comments__author'),
+            pk=id
+        )
 
     if (request.user != post.author
             and (not post.is_published
@@ -77,8 +79,8 @@ def profile_view(request, username):
             category__is_published=True,
             pub_date__lte=timezone.now()
         )
-    post_list = post_list.select_related('category', 'location')\
-                        .prefetch_related('comments')
+    post_list = post_list.select_related('category', 'location') \
+                            .prefetch_related('comments')
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
