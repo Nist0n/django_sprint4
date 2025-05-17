@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
+from django.http import Http404
 
 
 User = get_user_model()
@@ -30,9 +31,10 @@ def index(request):
 def post_detail(request, id):
     try:
         post = Post.objects.get(pk=id)
-        if (not post.is_published or
-            not post.category.is_published or
-            post.pub_date > timezone.now()) and request.user != post.author:
+        if (not post.is_published
+            or not post.category.is_published
+            or post.pub_date > timezone.now()
+            ) and request.user != post.author:
             raise Http404
     except Post.DoesNotExist:
         raise Http404
@@ -167,7 +169,7 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     pk_url_kwarg = 'comment_id'
 
     def test_func(self):
-            return self.get_object().author == self.request.user
+        return self.get_object().author == self.request.user
 
     def dispatch(self, request, *args, **kwargs):
         comment = self.get_object()
