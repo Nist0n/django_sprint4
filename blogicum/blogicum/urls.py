@@ -12,11 +12,11 @@ handler500 = 'pages.views.server_error'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('django.contrib.auth.urls')),
-    path('', include('blog.urls')),
     path(
-            'auth/registration/',
-            blog_views.RegistrationView.as_view(),
-            name='registration'
-        ),
+        'auth/registration/',
+        blog_views.RegistrationView.as_view(),
+        name='registration'
+    ),
+    path('', include('blog.urls')),
     path('pages/', include('pages.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
