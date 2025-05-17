@@ -77,8 +77,8 @@ def profile_view(request, username):
             category__is_published=True,
             pub_date__lte=timezone.now()
         )
-    post_list = post_list.select_related('category', 'location')
-                         .prefetch_related('comments')
+    post_list = post_list.select_related('category', 'location')\
+                        .prefetch_related('comments')
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
