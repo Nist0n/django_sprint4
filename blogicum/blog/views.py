@@ -10,7 +10,6 @@ from django.contrib.auth import get_user_model
 from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
 from django.http import Http404
-from django.views.generic import UpdateView
 from .forms import ProfileEditForm
 
 
@@ -165,7 +164,6 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-    model = User
     form_class = ProfileEditForm
     template_name = 'blog/profile_edit.html'
 
