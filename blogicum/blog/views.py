@@ -32,12 +32,12 @@ def post_detail(request, id):
     try:
         post = Post.objects.get(pk=id)
         if (not post.is_published
-            or not post.category.is_published
-            or post.pub_date > timezone.now()
-           ) and request.user != post.author:
-            raise Http404
-        except Post.DoesNotExist:
-            raise Http404
+                or not post.category.is_published
+                or post.pub_date > timezone.now()):
+            if request.user != post.author:
+                raise Http404
+    except Post.DoesNotExist:
+        raise Http404
 
     post = get_object_or_404(
         Post.objects.select_related(
