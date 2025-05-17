@@ -173,7 +173,10 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
 @login_required
 def add_comment(request, post_id):
-    post = get_object_or_404(Post, pk=post_id)
+    try:
+        post = Post.objects.get(pk=post_id, is_published=True)
+    except Post.DoesNotExist:
+        raise Http404("Пост не существует или не опубликован")
     if request.method == 'POST':
         form = CommentForm(request.POST)
         if form.is_valid():
@@ -184,7 +187,11 @@ def add_comment(request, post_id):
             return redirect('blog:post_detail', id=post_id)
     else:
         form = CommentForm()
-    return render(request, 'blog/comment_form.html', {'form': form})
+
+    return render(request, 'blog/comment_form.html', {
+        'form': form,
+        'post_id': post_id
+    })
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
@@ -230,10 +237,16 @@ def edit_comment(request, post_id, comment_id):
 
 @login_required
 def delete_comment(request, post_id, comment_id):
-    comment = get_object_or_404(Comment, pk=comment_id, author=request.user)
+    try:
+        comment = Comment.objects.get(pk=comment_id, post_id=post_id)
+    except Comment.DoesNotExist:
+        raise Http404("Комментарий не найден")
+
+    if request.user != comment.author:
+        raise Http404("Вы не можете удалить этот комментарий")
+
     if request.method == 'POST':
         comment.delete()
         return redirect('blog:post_detail', id=post_id)
-    return render(request,
-                  'blog/comment_confirm_delete.html',
-                  {'comment': comment})
+
+    return render(request, 'blog/comment.html', {'comment': comment})
