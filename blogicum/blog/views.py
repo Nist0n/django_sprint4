@@ -114,6 +114,8 @@ class PostCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.author = self.request.user
+        if 'image' in self.request.FILES:
+            form.instance.image = self.request.FILES['image']
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -173,24 +175,29 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
 @login_required
 def add_comment(request, post_id):
-    try:
-        post = Post.objects.get(pk=post_id, is_published=True)
-    except Post.DoesNotExist:
-        raise Http404("Пост не существует или не опубликован")
+    post = get_object_or_404(Post, pk=post_id)
+
+    if not post.is_published or post.pub_date > timezone.now():
+        raise Http404("Пост не доступен для комментирования")
+
     if request.method == 'POST':
         form = CommentForm(request.POST)
         if form.is_valid():
             comment = form.save(commit=False)
             comment.post = post
             comment.author = request.user
-            comment.save()
-            return redirect('blog:post_detail', id=post_id)
+            try:
+                comment.save()
+                return redirect('blog:post_detail', id=post_id)
+            except Exception as e:
+                print(f"Ошибка сохранения комментария: {e}")
+                form.add_error(None, "Ошибка сохранения комментария")
     else:
         form = CommentForm()
 
     return render(request, 'blog/comment_form.html', {
         'form': form,
-        'post_id': post_id
+        'post': post
     })
 
 
@@ -238,9 +245,10 @@ def edit_comment(request, post_id, comment_id):
 @login_required
 def delete_comment(request, post_id, comment_id):
     try:
-        comment = Comment.objects.get(pk=comment_id, post_id=post_id)
-    except Comment.DoesNotExist:
-        raise Http404("Комментарий не найден")
+        post = Post.objects.get(pk=post_id)
+        comment = Comment.objects.get(pk=comment_id, post=post)
+    except (Post.DoesNotExist, Comment.DoesNotExist):
+        raise Http404("Комментарий или пост не найдены")
 
     if request.user != comment.author:
         raise Http404("Вы не можете удалить этот комментарий")
@@ -249,4 +257,7 @@ def delete_comment(request, post_id, comment_id):
         comment.delete()
         return redirect('blog:post_detail', id=post_id)
 
-    return render(request, 'blog/comment.html', {'comment': comment})
+    return render(request, 'blog/comment.html', {
+        'comment': comment,
+        'post': post
+    })
