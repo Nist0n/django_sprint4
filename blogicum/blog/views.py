@@ -34,10 +34,10 @@ def post_detail(request, id):
         pk=id
     )
 
-    if (request.user != post.author and
-        (not post.is_published or
-         not post.category.is_published or
-         post.pub_date > timezone.now())):
+    if (request.user != post.author
+            and (not post.is_published
+                 or not post.category.is_published
+                 or post.pub_date > timezone.now())):
         return redirect('blog:index')
 
     form = CommentForm()
@@ -58,6 +58,7 @@ def category_posts(request, category_slug):
         is_published=True,
         pub_date__lte=timezone.now()
     ).select_related('author', 'location').prefetch_related('comments')
+
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -76,7 +77,9 @@ def profile_view(request, username):
             category__is_published=True,
             pub_date__lte=timezone.now()
         )
-    post_list = post_list.select_related('category', 'location').prefetch_related('comments')
+    post_list = post_list.select_related('category', 'location')
+                         .prefetch_related('comments')
+
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -102,7 +105,10 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
+        return reverse_lazy(
+            'blog:profile',
+            kwargs={'username': self.request.user.username}
+        )
 
 
 class PostUpdateView(LoginRequiredMixin, UpdateView):
@@ -111,13 +117,11 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'blog/create.html'
     pk_url_kwarg = 'post_id'
 
-
     def dispatch(self, request, *args, **kwargs):
         obj = self.get_object()
         if obj.author != self.request.user:
             return redirect('blog:post_detail', id=obj.pk)
         return super().dispatch(request, *args, **kwargs)
-
 
     def get_success_url(self):
         return reverse_lazy('blog:post_detail', kwargs={'id': self.object.pk})
@@ -128,16 +132,17 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
     template_name = 'blog/detail.html'
     pk_url_kwarg = 'post_id'
 
-
     def dispatch(self, request, *args, **kwargs):
         obj = self.get_object()
         if obj.author != self.request.user:
             return redirect('blog:post_detail', id=obj.pk)
         return super().dispatch(request, *args, **kwargs)
 
-
     def get_success_url(self):
-        return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
+        return reverse_lazy(
+            'blog:profile',
+            kwargs={'username': self.request.user.username}
+        )
 
 
 @login_required
@@ -154,7 +159,11 @@ def add_comment(request, post_id):
 
 @login_required
 def edit_comment(request, post_id, comment_id):
-    comment = get_object_or_404(Comment, pk=comment_id, author=request.user)
+    comment = get_object_or_404(
+        Comment,
+        pk=comment_id,
+        author=request.user
+    )
     if request.method == 'POST':
         form = CommentForm(request.POST, instance=comment)
         if form.is_valid():
@@ -170,7 +179,11 @@ def edit_comment(request, post_id, comment_id):
 
 @login_required
 def delete_comment(request, post_id, comment_id):
-    comment = get_object_or_404(Comment, pk=comment_id, author=request.user)
+    comment = get_object_or_404(
+        Comment,
+        pk=comment_id,
+        author=request.user
+    )
     if request.method == 'POST':
         comment.delete()
         return redirect('blog:post_detail', id=post_id)
