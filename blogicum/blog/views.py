@@ -13,6 +13,7 @@ from django.http import Http404
 from django.views.generic import UpdateView
 from django.contrib.auth.forms import UserChangeForm
 
+
 User = get_user_model()
 
 
@@ -181,7 +182,9 @@ def add_comment(request, post_id):
             comment.author = request.user
             comment.save()
             return redirect('blog:post_detail', id=post_id)
-    return redirect('blog:post_detail', id=post_id)
+    else:
+        form = CommentForm()
+    return render(request, 'blog/comment_form.html', {'form': form})
 
 
 class CommentUpdateView(LoginRequiredMixin, UpdateView):
