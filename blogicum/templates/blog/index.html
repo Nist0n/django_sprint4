@@ -4,6 +4,7 @@
 {% endblock %}
 {% block content %}
   {% for post in page_obj %}
+    <p>Комментариев: ({{ post.comments.count }})</p>
     <article class="mb-5">
       {% include "includes/post_card.html" %}
     </article>
