@@ -19,8 +19,7 @@ def index(request):
         is_published=True,
         category__is_published=True,
         pub_date__lte=timezone.now()
-    ).select_related('category', 'location', 'author')
-    .prefetch_related('comments')
+    ).select_related('category', 'location', 'author').prefetch_related('comments')
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')

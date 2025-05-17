@@ -92,9 +92,9 @@ class Post(models.Model):
         verbose_name='Добавлено'
     )
     image = models.ImageField(
-            'Изображение',
-            upload_to='posts_images',
-            blank=True
+        'Изображение',
+        upload_to='posts_images',
+        blank=True
     )
 
     class Meta:
@@ -104,6 +104,7 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
 
 class Comment(models.Model):
     text = models.TextField('Текст комментария')
