@@ -28,18 +28,21 @@ def index(request):
 
 
 def post_detail(request, id):
+    try:
+        post = Post.objects.get(pk=id)
+        if (not post.is_published or
+            not post.category.is_published or
+            post.pub_date > timezone.now()) and request.user != post.author:
+            raise Http404
+    except Post.DoesNotExist:
+        raise Http404
+
     post = get_object_or_404(
         Post.objects.select_related(
             'category', 'location', 'author'
         ).prefetch_related('comments__author'),
         pk=id
     )
-
-    if (request.user != post.author
-            and (not post.is_published
-                 or not post.category.is_published
-                 or post.pub_date > timezone.now())):
-        return redirect('blog:index')
 
     form = CommentForm()
     return render(request, 'blog/detail.html', {
@@ -71,15 +74,14 @@ def category_posts(request, category_slug):
 
 def profile_view(request, username):
     profile = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author=profile)
+    post_list = Post.objects.filter(author=profile).order_by('-pub_date')
+
     if request.user != profile:
         post_list = post_list.filter(
             is_published=True,
             category__is_published=True,
             pub_date__lte=timezone.now()
-        ).order_by('-pub_date')  # Сортировка для чужих профилей
-    else:
-        post_list = post_list.order_by('-pub_date')
+        )
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -163,6 +165,9 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
     form_class = CommentForm
     template_name = 'blog/comment.html'
     pk_url_kwarg = 'comment_id'
+
+    def test_func(self):
+            return self.get_object().author == self.request.user
 
     def dispatch(self, request, *args, **kwargs):
         comment = self.get_object()
