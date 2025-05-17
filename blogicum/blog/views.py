@@ -80,24 +80,22 @@ def profile_view(request, username):
     post_list = Post.objects.filter(author=profile).order_by('-pub_date')
 
     if request.user == profile:
-            post_list = Post.objects.filter(author=profile)
-        else:
-            post_list = Post.objects.filter(
-                author=profile,
-                is_published=True,
-                category__is_published=True,
-                pub_date__lte=timezone.now()
-            )
+        post_list = Post.objects.filter(author=profile)
+    else:
+        post_list = Post.objects.filter(
+            author=profile,
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=timezone.now()
 
-        post_list = post_list.order_by('-pub_date')
-        paginator = Paginator(post_list, 10)
-        page_number = request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-
-        return render(request, 'blog/profile.html', {
-            'profile': profile,
-            'page_obj': page_obj,
-        })
+    post_list = post_list.order_by('-pub_date')
+    paginator = Paginator(post_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_numb
+    return render(request, 'blog/profile.html', {
+        'profile': profile,
+        'page_obj': page_obj,
+    })
 
 
 class RegistrationView(CreateView):
