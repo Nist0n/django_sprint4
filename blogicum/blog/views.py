@@ -72,8 +72,6 @@ def category_posts(request, category_slug):
 
 def profile_view(request, username):
     profile = get_object_or_404(User, username=username)
-    if not profile.is_active:
-        raise Http404("Профиль не найден")
     post_list = Post.objects.filter(author=profile)
     if request.user != profile:
         post_list = post_list.filter(
@@ -149,20 +147,6 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         )
 
 
-class CommentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
-    model = Comment
-    form_class = CommentForm
-    template_name = 'blog/comment.html'
-    pk_url_kwarg = 'comment_id'
-
-    def test_func(self):
-        comment = self.get_object()
-        return self.request.user == comment.author
-
-    def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'id': self.kwargs['post_id']})
-
-
 @login_required
 def add_comment(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
@@ -173,6 +157,25 @@ def add_comment(request, post_id):
         comment.author = request.user
         comment.save()
     return redirect('blog:post_detail', id=post_id)
+
+
+class CommentUpdateView(LoginRequiredMixin, UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
+
+    def dispatch(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.author != request.user:
+            return redirect('blog:post_detail', id=comment.post.pk)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse(
+            'blog:post_detail',
+            kwargs={'id': self.kwargs['post_id']}
+        )
 
 
 @login_required
