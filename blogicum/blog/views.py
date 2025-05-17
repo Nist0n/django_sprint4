@@ -11,7 +11,7 @@ from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
 from django.http import Http404
 from django.views.generic import UpdateView
-
+from django.contrib.auth.forms import UserChangeForm
 
 User = get_user_model()
 
@@ -157,8 +157,7 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-    model = User
-    fields = ['first_name', 'last_name', 'email']
+    form_class = UserChangeForm
     template_name = 'blog/profile_edit.html'
 
     def get_object(self):
@@ -166,7 +165,7 @@ class ProfileUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse('blog:profile',
-                       kwargs={'username': self.request.user.username})
+        kwargs={'username': self.request.user.username})
 
 
 @login_required
@@ -226,12 +225,10 @@ def edit_comment(request, post_id, comment_id):
 
 @login_required
 def delete_comment(request, post_id, comment_id):
-    comment = get_object_or_404(
-        Comment,
-        pk=comment_id,
-        author=request.user
-    )
+    comment = get_object_or_404(Comment, pk=comment_id, author=request.user)
     if request.method == 'POST':
         comment.delete()
         return redirect('blog:post_detail', id=post_id)
-    return render(request, 'blog/comment.html', {'comment': comment})
+    return render(request,
+                  'blog/comment_confirm_delete.html',
+                  {'comment': comment})
