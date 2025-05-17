@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
 from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
+from django.contrib.auth.mixins import UserPassesTestMixin
 
 
 User = get_user_model()
@@ -19,9 +20,7 @@ def index(request):
         is_published=True,
         category__is_published=True,
         pub_date__lte=timezone.now()
-    ).select_related(
-        'category', 'location', 'author'
-    ).prefetch_related('comments')
+    ).order_by('-pub_date')
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -60,7 +59,7 @@ def category_posts(request, category_slug):
         category=category,
         is_published=True,
         pub_date__lte=timezone.now()
-    ).select_related('author', 'location').prefetch_related('comments')
+    ).order_by('-pub_date')
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -73,16 +72,17 @@ def category_posts(request, category_slug):
 
 def profile_view(request, username):
     profile = get_object_or_404(User, username=username)
+    if not profile.is_active:
+        raise Http404("Профиль не найден")
     post_list = Post.objects.filter(author=profile)
     if request.user != profile:
         post_list = post_list.filter(
             is_published=True,
             category__is_published=True,
             pub_date__lte=timezone.now()
-        )
-    post_list = post_list.select_related(
-        'category', 'location'
-    ).prefetch_related('comments')
+        ).order_by('-pub_date')  # Сортировка для чужих профилей
+    else:
+        post_list = post_list.order_by('-pub_date')
 
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
@@ -147,6 +147,20 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
             'blog:profile',
             kwargs={'username': self.request.user.username}
         )
+
+
+class CommentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment.html'
+    pk_url_kwarg = 'comment_id'
+
+    def test_func(self):
+        comment = self.get_object()
+        return self.request.user == comment.author
+
+    def get_success_url(self):
+        return reverse('blog:post_detail', kwargs={'id': self.kwargs['post_id']})
 
 
 @login_required

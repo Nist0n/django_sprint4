@@ -31,7 +31,7 @@ DEBUG = True
 
 # Media files configuration
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Email backend configuration
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
@@ -148,3 +148,5 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+
+POSTS_PER_PAGE = 10
