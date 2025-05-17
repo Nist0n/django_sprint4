@@ -1,13 +1,12 @@
-﻿<!-- blog/index.html -->
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
+{% block title %}
+  Лента записей
+{% endblock %}
 {% block content %}
-{% for post in posts %}
-<article>
-    <h2>{{ post.location }}</h2>
-    <p>{{ post.date }}</p>
-    <!-- Добавьте фильтр для обрезки текста -->
-    <p>{{ post.text }}</p>
-</article>
-{% endfor %}
+  {% for post in page_obj %}
+    <article class="mb-5">
+      {% include "includes/post_card.html" %}
+    </article>
+  {% endfor %}
+  {% include "includes/paginator.html" %}
 {% endblock %}

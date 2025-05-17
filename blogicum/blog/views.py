@@ -12,6 +12,7 @@ from .forms import PostForm, CommentForm
 from django.http import Http404
 from django.views.generic import UpdateView
 from django.contrib.auth.forms import UserChangeForm
+from .forms import ProfileEditForm
 
 
 User = get_user_model()
@@ -31,24 +32,27 @@ def index(request):
 
 
 def post_detail(request, id):
-    try:
-        post = Post.objects.get(pk=id)
-        if (not post.is_published
-                or not post.category.is_published
-                or post.pub_date > timezone.now()):
-            if request.user != post.author:
-                raise Http404
-    except Post.DoesNotExist:
-        raise Http404
-
     post = get_object_or_404(
-        Post.objects.select_related(
-            'category', 'location', 'author'
-        ).prefetch_related('comments__author'),
+        Post.objects.select_related('category', 'location', 'author')
+        .prefetch_related('comments__author'),
         pk=id
     )
 
-    form = CommentForm()
+    if (not post.is_published or not post.category.is_published
+        or post.pub_date > timezone.now()) and request.user != post.author:
+        raise Http404
+
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            return redirect('blog:post_detail', id=post.id)
+    else:
+        form = CommentForm()
+
     return render(request, 'blog/detail.html', {
         'post': post,
         'form': form,
@@ -160,8 +164,9 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
-    form_class = UserChangeForm
+    form_class = ProfileEditForm
     template_name = 'blog/profile_edit.html'
+    success_url = reverse_lazy('blog:profile')
 
     def get_object(self):
         return self.request.user

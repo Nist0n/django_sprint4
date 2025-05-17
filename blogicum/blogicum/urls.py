@@ -4,6 +4,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls import handler403, handler404, handler500
 from blog import views as blog_views
+from django.contrib import admin
+from django.urls import path, include
 
 handler403 = 'pages.views.csrf_failure'
 handler404 = 'pages.views.page_not_found'
