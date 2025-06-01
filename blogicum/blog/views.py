@@ -1,5 +1,6 @@
 ﻿from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
+from django.db.models import Count
 from django.views.generic import CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -11,6 +12,11 @@ from .models import Post, Category, Comment
 from .forms import PostForm, CommentForm
 from django.http import Http404
 from .forms import ProfileEditForm
+from .utils import (
+    annotate_posts_with_comments,
+    filter_published_posts,
+    get_paginated_page
+)
 
 
 User = get_user_model()
@@ -23,6 +29,8 @@ def index(request):
         pub_date__lte=timezone.now()
     ).order_by('-pub_date')
 
+    post_list = post_list.annotate(comment_count=Count('comments'))
+
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -31,16 +39,13 @@ def index(request):
 
 def post_detail(request, id):
     post = get_object_or_404(
-        Post.objects.select_related('category', 'location', 'author')
-        .prefetch_related('comments__author'),
+        annotate_posts_with_comments(Post.objects),
         pk=id
     )
 
-    if (not post.is_published
-            or not post.category.is_published
-            or post.pub_date > timezone.now()) \
-            and request.user != post.author:
-        raise Http404
+    if not (post.is_published and post.category.is_published and post.pub_date <= timezone.now()):
+            if request.user != post.author:
+                raise Http404
 
     if request.method == 'POST':
         form = CommentForm(request.POST)
