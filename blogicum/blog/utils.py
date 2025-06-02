@@ -9,7 +9,7 @@ def annotate_posts_with_comments(query_set):
     ).order_by('-pub_date')
 
 def get_paginated_page(request, query_set, per_page=10):
-    paginator = Paginator(queryset, per_page)
+    paginator = Paginator(query_set, per_page)
     page_number = request.GET.get('page')
     return paginator.get_page(page_number)
 
