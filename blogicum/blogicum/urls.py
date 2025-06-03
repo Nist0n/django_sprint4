@@ -19,7 +19,6 @@ urlpatterns = [
         LogoutView.as_view(next_page='/', http_method_names=['get', 'post']),
         name='logout'
     ),
-    path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/', include('django.contrib.auth.urls')),
     path(
         'auth/registration/',
