@@ -23,17 +23,10 @@ User = get_user_model()
 
 
 def index(request):
-    post_list = Post.objects.filter(
-        is_published=True,
-        category__is_published=True,
-        pub_date__lte=timezone.now()
-    ).order_by('-pub_date')
-
-    post_list = post_list.annotate(comment_count=Count('comments'))
-
-    paginator = Paginator(post_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    posts = Post.objects.all()
+    posts = annotate_posts_with_comments(posts)
+    posts = filter_published_posts(posts)
+    page_obj = get_paginated_page(request, posts)
     return render(request, 'blog/index.html', {'page_obj': page_obj})
 
 
@@ -44,8 +37,8 @@ def post_detail(request, id):
     )
 
     if not (post.is_published and post.category.is_published and post.pub_date <= timezone.now()):
-            if request.user != post.author:
-                raise Http404
+        if request.user != post.author:
+            raise Http404
 
     if request.method == 'POST':
         form = CommentForm(request.POST)
@@ -65,20 +58,11 @@ def post_detail(request, id):
 
 
 def category_posts(request, category_slug):
-    category = get_object_or_404(
-        Category,
-        slug=category_slug,
-        is_published=True
-    )
-    post_list = Post.objects.filter(
-        category=category,
-        is_published=True,
-        pub_date__lte=timezone.now()
-    ).order_by('-pub_date')
-
-    paginator = Paginator(post_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    category = get_object_or_404(Category, slug=category_slug, is_published=True)
+    posts = Post.objects.filter(category=category)
+    posts = annotate_posts_with_comments(posts)
+    posts = filter_published_posts(posts)
+    page_obj = get_paginated_page(request, posts)
     return render(request, 'blog/category.html', {
         'category': category,
         'page_obj': page_obj
@@ -87,22 +71,13 @@ def category_posts(request, category_slug):
 
 def profile_view(request, username):
     profile = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author=profile).order_by('-pub_date')
+    posts = Post.objects.filter(author=profile)
 
-    if request.user == profile:
-        post_list = Post.objects.filter(author=profile)
-    else:
-        post_list = Post.objects.filter(
-            author=profile,
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=timezone.now()
-        )
+    posts = annotate_posts_with_comments(posts)
+    if request.user != profile:
+        posts = filter_published_posts(posts)
 
-    post_list = post_list.order_by('-pub_date')
-    paginator = Paginator(post_list, 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = get_paginated_page(request, posts)
 
     return render(request, 'blog/profile.html', {
         'profile': profile,
