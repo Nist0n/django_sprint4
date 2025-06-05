@@ -1,0 +1,24 @@
+﻿{% extends "base.html" %}
+{% block title %}Удаление публикации{% endblock %}
+{% block content %}
+<div class="col d-flex justify-content-center">
+  <div class="card" style="width: 40rem;">
+    <div class="card-header">Удаление публикации</div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <article>
+          {% if object.image %}
+          <img class="border-3 rounded img-fluid img-thumbnail mb-2" src="{{ object.image.url }}">
+          {% endif %}
+          <p>{{ object.pub_date|date:"d E Y" }}</p>
+          <h3>{{ object.title }}</h3>
+        </article>
+        <p>Вы уверены, что хотите удалить эту публикацию?</p>
+        <button type="submit" class="btn btn-danger">Удалить</button>
+        <a href="{% url 'blog:post_detail' object.id %}" class="btn btn-secondary">Отмена</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

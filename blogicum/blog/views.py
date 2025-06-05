@@ -1,22 +1,22 @@
 ﻿from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
-from django.db.models import Count
-from django.views.generic import CreateView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
-from django.urls import reverse_lazy, reverse
 from django.core.paginator import Paginator
 from django.contrib.auth import get_user_model
-from .models import Post, Category, Comment
-from .forms import PostForm, CommentForm
-from django.http import Http404
-from .forms import ProfileEditForm
-from .utils import (
+from .functions import (
     annotate_posts_with_comments,
     filter_published_posts,
     get_paginated_page
 )
+from .models import Post, Category, Comment
+from django.views.generic import CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from .forms import PostForm, CommentForm
+from django.http import Http404
+from django.db.models import Count
+from django.urls import reverse_lazy, reverse
+from .forms import ProfileEditForm
 
 
 User = get_user_model()
@@ -127,12 +127,12 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
-    template_name = 'blog/detail.html'
+    template_name = 'blog/post_confirm_delete.html'
     pk_url_kwarg = 'post_id'
 
     def dispatch(self, request, *args, **kwargs):
         obj = self.get_object()
-        if obj.author != self.request.user:
+        if obj.author != request.user:
             return redirect('blog:post_detail', id=obj.pk)
         return super().dispatch(request, *args, **kwargs)
 
@@ -141,6 +141,10 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
             'blog:profile',
             kwargs={'username': self.request.user.username}
         )
+
+    def delete(self, request, *args, **kwargs):
+        print(f"Удаление поста {self.get_object().id}")
+        return super().delete(request, *args, **kwargs)
 
 
 class ProfileUpdateView(LoginRequiredMixin, UpdateView):
